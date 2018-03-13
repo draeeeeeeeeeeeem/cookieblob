@@ -6,6 +6,7 @@ const GuildEvents = require("./GuildEvents");
 const dbots = require("dbots");
 const MusicGuild = require("./MusicGuild");
 const MusicAlone = require("./MusicAlone");
+const MusicRadio = require("./MusicRadio");
 const Config = require("./Config");
 /** @class */
 module.exports = class Cookieblob extends Client {
@@ -31,6 +32,8 @@ module.exports = class Cookieblob extends Client {
         this.on('ready', () => GuildEvents(this));
         this.on('guildCreate', () => GuildEvents(this));
         this.on('guildRemove', () => GuildEvents(this));
+
+        MusicRadio(this).then(radio => this.radio = radio);
         /**
          * @type {Map<String, MusicGuild>}
          */
