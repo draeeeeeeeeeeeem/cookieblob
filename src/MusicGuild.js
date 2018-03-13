@@ -1,6 +1,6 @@
 /** @module */
 const Cookieblob = require("./Cookieblob");
-const { TextChannel, VoiceChannel, StreamDispatcher, MessageEmbed, GuildMember } = require("discord.js");
+const { TextChannel, VoiceChannel, StreamDispatcher, MessageEmbed, GuildMember, VoiceConnection } = require("discord.js");
 const ytdl = require("ytdl-core");
 const search = require("youtube-search");
 
@@ -82,17 +82,23 @@ module.exports = /** @class */ class MusicGuild {
             });
         });
     }
-
-    async play() {
+    /**
+     * @returns {Promise<?VoiceConnection>}
+     */
+    async getVoiceConnection() {
         let voiceConnection = this.voiceChannel.guild.voiceConnection;
         if (!this.voiceChannel.joinable 
             && !this.voiceChannel.members.has(this.voiceChannel.guild.me.id)) return await this.textChannel.send(`I could not join that voice channel!`);
-        
         if (!this.voiceChannel.members.has(this.voiceChannel.guild.me.id)) voiceConnection = await this.voiceChannel.join();
+        return voiceConnection;
+    }
+
+    async playQueue() {
+        let voiceConnection = await this.getVoiceConnection();
         if (!voiceConnection) {
             // we're in some weird state, we dont wanna be in this state.
             this.voiceChannel.leave();
-            return this.play();
+            return await this.playQueue();
         }
         const queueItem = this.queue.shift();
         this.dispatcher = voiceConnection.play(ytdl(queueItem.link, {filter: "audioonly"}));
@@ -101,7 +107,7 @@ module.exports = /** @class */ class MusicGuild {
         this.skippers = 0;
         this.dispatcher.once('end', () => {
             this.playing = false;
-            if (this.queue.length > 0) this.play().catch(err => { throw err });
+            if (this.queue.length > 0) this.playQueue().catch(err => { throw err });
             else this.voiceChannel.leave();
         });
         await this.textChannel.send(new MessageEmbed()
